@@ -157,33 +157,42 @@ with tab1:
         DATABASE_NAME = "focusflowtestdb"
         COLLECTION_NAME = "toolkietest"
 
-        # Connect to MongoDB
-        client = MongoClient(MONGO_URI)
-        db = client[DATABASE_NAME]
-        collection = db[COLLECTION_NAME]
+        # Function to fetch data from MongoDB
+        def load_data_from_mongodb():
+            """
+            Fetches data from a MongoDB collection and converts it to a pandas DataFrame.
+            """
+            try:
+                # Connect to MongoDB
+                client = MongoClient(MONGO_URI)
+                db = client[DATABASE_NAME]
+                collection = db[COLLECTION_NAME]
 
-        # Fetch data from MongoDB
-        @st.cache_data
-        def load_data():
-            data = list(collection.find())
-            # Convert MongoDB data to a pandas DataFrame
-            df = pd.DataFrame(data)
-            return df
+                # Fetch data from MongoDB
+                data = list(collection.find())
 
-        # Streamlit application
-        st.write("MongoDB Data Viewer")
+                # Convert data to pandas DataFrame
+                df = pd.DataFrame(data)
+                return df
 
-        # Load data
-        uploaded_file = load_data()
-
-        # Display data
-        if not uploaded_file.empty:
-            st.write("Test data fetched succesfully:")
-            #st.write(uploaded_file)
-            print(uploaded_file.columns)
-        else:
-            st.write("No data found in the collection.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return pd.DataFrame()  # Return an empty DataFrame in case of error
         
+        if st.button("Import Sample Data🚀"):
+                    # Load data into a pandas DataFrame
+            uploaded_file = load_data_from_mongodb()
+
+            # Display the DataFrame (or perform further operations)
+            if not uploaded_file.empty:
+                st.write("Data fetched successfully:")
+                st.write(uploaded_file.head())  # Display the first few rows
+            else:
+                print("No data found or an error occurred.")
+
+
+
+
         # st.markdown("### Upload Data")
         # uploaded_file = st.file_uploader(
         #     "Upload Excel file",
@@ -233,17 +242,31 @@ with tab1:
                 step=1
             )
 
-# Add the rest of your calculation logic here 
 
 # Forecast Button
 st.markdown('<div style="text-align: center; margin-top: 30px;">', unsafe_allow_html=True)
 if st.button("Generate Forecast 🚀"):
+            # Load data into a pandas DataFrame
+    uploaded_file = load_data_from_mongodb()
+
+    # Display the DataFrame (or perform further operations)
+    if not uploaded_file.empty:
+        st.write("Data fetched successfully:")
+        st.write(uploaded_file.head())  # Display the first few rows
+    else:
+        print("No data found or an error occurred.")
+
     if uploaded_file is not None:
         # Show a spinner while processing
         with st.spinner('Generating forecast... Please wait...'):
             # Read the uploaded Excel file into a DataFrame
             sales_data_df = uploaded_file
-            print(sales_data_df.columns)
+            
+            sales_data_df.rename(columns={
+                'Image URL.1': 'Image 1 URL',  # Replace 'Image URL' with your intended name
+                'Product URL': 'product_url'
+            }, inplace=True)
+
 
             # --- Original Code Logic Integration Starts Here ---
             
