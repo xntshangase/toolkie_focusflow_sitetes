@@ -191,15 +191,6 @@ with tab1:
                 print("No data found or an error occurred.")
 
 
-
-
-        # st.markdown("### Upload Data")
-        # uploaded_file = st.file_uploader(
-        #     "Upload Excel file",
-        #     type=["xlsx", "xls"],
-        #     help="Maximum file size: 200MB"
-        #)
-    
     with col2:
         st.markdown("### Forecast Parameters")
         
