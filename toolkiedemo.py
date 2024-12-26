@@ -28,10 +28,11 @@ from flask import Flask
 import streamlit as st
 from pymongo import MongoClient
 import pandas as pd
+from bson import ObjectId
 
 # Set page config first
 st.set_page_config(
-    page_title="Forecasting Toolkie",
+    page_title="Focus Flow Forecasting Tool",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -59,7 +60,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 class='header'>The Toolkie</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='header'>The Forecasting Tool</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subheader'>A Planner's Bestfriend</p>", unsafe_allow_html=True)
 
 
@@ -179,17 +180,26 @@ with tab1:
                 print(f"An error occurred: {e}")
                 return pd.DataFrame()  # Return an empty DataFrame in case of error
         
-        if st.button("Import Sample Data🚀"):
-                    # Load data into a pandas DataFrame
-            uploaded_file = load_data_from_mongodb()
+        if st.button("Import Sample Data⬇️"):
+            with st.spinner('importing sample... Please wait📥...'):
+                # Load data into a pandas DataFrame
+                # Initialize session state if needed
+                if 'uploaded_file_data' not in st.session_state:
+                    st.session_state.uploaded_file_data = None
 
-            # Display the DataFrame (or perform further operations)
-            if not uploaded_file.empty:
-                st.write("Data fetched successfully:")
-                st.write(uploaded_file.head())  # Display the first few rows
-            else:
-                print("No data found or an error occurred.")
+                uploaded_file = load_data_from_mongodb()
 
+                # Display the DataFrame (or perform further operations)
+                if not uploaded_file.empty:
+                    st.write("Data fetched successfully:")
+                    sales_data_df = uploaded_file
+                    st.write(uploaded_file.head())
+             # Load data into a pandas DataFrame
+                else:
+                    print("No data found or an error occurred.")
+                    st.stop()
+
+            
 
     with col2:
         st.markdown("### Forecast Parameters")
@@ -237,22 +247,18 @@ with tab1:
 # Forecast Button
 st.markdown('<div style="text-align: center; margin-top: 30px;">', unsafe_allow_html=True)
 if st.button("Generate Forecast 🚀"):
-            # Load data into a pandas DataFrame
+    # Check if the uploaded file is empty
     uploaded_file = load_data_from_mongodb()
-
-    # Display the DataFrame (or perform further operations)
     if not uploaded_file.empty:
-        st.write("Data fetched successfully:")
-        st.write(uploaded_file.head())  # Display the first few rows
-    else:
-        print("No data found or an error occurred.")
+        # Show a spinner while processing    
 
-    if uploaded_file is not None:
-        # Show a spinner while processing
-        with st.spinner('Generating forecast... Please wait...'):
+        sales_data_df = uploaded_file
+        with st.spinner('Generating forecast... Please wait☕...'):
             # Read the uploaded Excel file into a DataFrame
-            sales_data_df = uploaded_file
-            
+            with tab1:
+                st.markdown("### Sample Data")
+                st.write(uploaded_file.head())
+                st.markdown("### Forecast Completed please check the results tab for the output👍")
             sales_data_df.rename(columns={
                 'Image URL.1': 'Image 1 URL',  # Replace 'Image URL' with your intended name
                 'Product URL': 'product_url'
@@ -436,8 +442,8 @@ if st.button("Generate Forecast 🚀"):
             #15
             merged_df['Total_Season_Sales'] = round(merged_df["Use_this_ave_sales_u"]*26*long_horizon_diminishing_return)
             merged_df['Total_Season_ideal_intakes'] = round(merged_df["Total_Season_Sales"]/required_seaonal_clr_percent)- merged_df['Actual Current Stock Units']
-            merged_df['Total_Qtr_Sales'] = round(merged_df["Use_this_ave_sales_u"]*13*medium_horizon_diminishing_return)
-            merged_df['Total_Qtr_ideal_intakes'] = round(merged_df["Total_Qtr_Sales"]/required_quartery_clr_percent)- merged_df['Actual Current Stock Units']
+            merged_df['Total_Forecasted_Qtr_Sales'] = round(merged_df["Use_this_ave_sales_u"]*13*medium_horizon_diminishing_return)
+            merged_df['Total_Qtr_ideal_intakes'] = round(merged_df["Total_Forecasted_Qtr_Sales"]/required_quartery_clr_percent)- merged_df['Actual Current Stock Units']
             merged_df['Total_9wks_Sales_once_off_repeat'] = round(merged_df["Use_this_ave_sales_u"]*8*medium_horizon_diminishing_return)
             merged_df['Total_9wks_Sales_once_off_repeat_ideal_intakes'] = round(merged_df["Total_9wks_Sales_once_off_repeat"]/required_8wks_clr_percent)- merged_df['Actual Current Stock Units']
             
@@ -454,7 +460,10 @@ if st.button("Generate Forecast 🚀"):
             #selected_columns_df2 ['Ideal_Summer_Intake'] = selected_columns_df2['Ideal_Intakes'] - selected_columns_df2['Actual Current Stock Units']
 
             #18
-            df_reordered = selected_columns_df2[['Brand', 'Department', 'Category Level 1', 'Category Level 2', 'SKU ID','Product ID','Product','Size','Current RSP (incl VAT)','Actual Intake Units','Actual Current Stock Units','Expected Intake Units','Tot Ave Sales U in horizon', 'count of horizon data point', 'Tot Sales U when in stock', 'Av Sales U when in stock', 'no_of_weeks_reviewed', 'Use_this_ave_sales_u',   'Total_Season_Sales', 'Total_Season_ideal_intakes', 'Total_Qtr_Sales', 'Total_Qtr_ideal_intakes', 'Total_9wks_Sales_once_off_repeat', 'Total_9wks_Sales_once_off_repeat_ideal_intakes','Image 1 URL', 'product_url']]
+            df_reordered = selected_columns_df2[['Brand', 'Department', 'Category Level 1', 'Category Level 2', 'SKU ID',
+                                                 'Product ID','Product','Size','Current RSP (incl VAT)','Actual Intake Units',
+                                                 'Actual Current Stock Units','Expected Intake Units',
+                                                 'Total_Forecasted_Qtr_Sales', 'Total_Qtr_ideal_intakes','Image 1 URL', 'product_url']]
             # First, get the sum of Total_Season_Sales by Product ID
             #season_sales_sum = df_reordered.groupby('Product ID')['Total_Season_Sales'].sum().reset_index()
             # Get unique product information with max RSP
@@ -480,18 +489,8 @@ if st.button("Generate Forecast 🚀"):
                 'Actual Intake Units': 'sum',
                 'Actual Current Stock Units': 'sum',
                 'Expected Intake Units': 'sum',
-                'Tot Ave Sales U in horizon': 'sum',
-                'count of horizon data point': 'max', 
-                'Tot Sales U when in stock': 'sum',
-                'Av Sales U when in stock': 'sum',
-                'no_of_weeks_reviewed': 'max',
-                'Use_this_ave_sales_u': 'sum',
-                'Total_Season_Sales': 'sum',
-                'Total_Season_ideal_intakes': 'sum',
-                'Total_Qtr_Sales': 'sum',
+                'Total_Forecasted_Qtr_Sales': 'sum',
                 'Total_Qtr_ideal_intakes': 'sum',
-                'Total_9wks_Sales_once_off_repeat': 'sum',
-                'Total_9wks_Sales_once_off_repeat_ideal_intakes': 'sum'
             }).reset_index()
 
             # Select only the necessary columns from sales_data_df
@@ -500,7 +499,9 @@ if st.button("Generate Forecast 🚀"):
             selected_columns_df_3.fillna(0,inplace=True)
             selected_columns_df_4 = selected_columns_df_3.merge(df_summed, on='Product ID')
             selected_columns_df_4.fillna(0,inplace=True)
-            df_reordered_2 = selected_columns_df_4[['Image 1 URL','Brand', 'Department', 'Category Level 1', 'Category Level 2', 'Product ID','Product','Current RSP (incl VAT)','Actual Intake Units','Actual Current Stock Units','Expected Intake Units','Tot Ave Sales U in horizon', 'count of horizon data point', 'Tot Sales U when in stock', 'Av Sales U when in stock', 'no_of_weeks_reviewed', 'Use_this_ave_sales_u',   'Total_Season_Sales', 'Total_Season_ideal_intakes', 'Total_Qtr_Sales', 'Total_Qtr_ideal_intakes', 'Total_9wks_Sales_once_off_repeat', 'Total_9wks_Sales_once_off_repeat_ideal_intakes', 'product_url']]
+            df_reordered_2 = selected_columns_df_4[['Image 1 URL','Brand', 'Department', 'Category Level 1', 'Category Level 2', 'Product ID','Product',
+                                                    'Current RSP (incl VAT)','Actual Intake Units','Actual Current Stock Units','Expected Intake Units',
+                                                    'Total_Forecasted_Qtr_Sales', 'Total_Qtr_ideal_intakes', 'product_url']]
             
             def prepare_interactive_table(df):
                 display_df = df.copy()
@@ -566,33 +567,30 @@ if st.button("Generate Forecast 🚀"):
             # st.session_state.filtered_df = filtered_df
             #             # Display filtered dataframe
             
-            with tab2:
-                st.subheader("Forecast Results")
-                st.dataframe(
-                    filtered_df,
-                    column_config={
-                        "Image": st.column_config.ImageColumn(
-                            "Product Image",
-                            help="Product image",
-                            width="medium",
-                        ),
-                        "Brand": st.column_config.TextColumn("Brand", width="medium"),
-                        "Department": st.column_config.TextColumn("Department", width="medium"),
-                        "Current RSP (incl VAT)": st.column_config.NumberColumn(
-                            "Price",
-                            format="R%.2f"
-                        )
-                    },
-                    use_container_width=True,
-                    hide_index=True,
-                    column_order=["Image", "Brand", "Department", "Category Level 1", "Category Level 2", 
-                                "Product ID","Product","Current RSP (incl VAT)",
-                                "Actual Intake Units","Actual Current Stock Units","Expected Intake Units",
-                                "Tot Ave Sales U in horizon", "no_of_weeks_reviewed",  
-                                "Av Sales U when in stock", "Use_this_ave_sales_u",   
-                                "Total_Season_Sales", "Total_Season_ideal_intakes", "Total_Qtr_Sales", "Total_Qtr_ideal_intakes", 
-                                "Total_9wks_Sales_once_off_repeat", "Total_9wks_Sales_once_off_repeat_ideal_intakes", "product_url"]
-                )
+        with tab2:
+            st.subheader("Forecast Results")
+            st.dataframe(
+                filtered_df,
+                column_config={
+                    "Image": st.column_config.ImageColumn(
+                        "Product Image",
+                        help="Product image",
+                        width="medium",
+                    ),
+                    "Brand": st.column_config.TextColumn("Brand", width="medium"),
+                    "Department": st.column_config.TextColumn("Department", width="medium"),
+                    "Current RSP (incl VAT)": st.column_config.NumberColumn(
+                        "Price",
+                        format="R%.2f"
+                    )
+                },
+                use_container_width=True,
+                hide_index=True,
+                column_order=["Image", "Brand", "Department", "Category Level 1", "Category Level 2", 
+                            "Product ID","Product","Current RSP (incl VAT)",
+                            "Actual Intake Units","Actual Current Stock Units","Expected Intake Units",
+                            "Total_Forecasted_Qtr_Sales", "Total_Qtr_ideal_intakes", "product_url"]
+            )
 
             #def render_images(df):
             #    return df.to_html(escape=False, formatters=dict(**{
@@ -633,6 +631,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 # Add footer
 st.markdown("""
 <div style='text-align: center; color: #668; padding: 20px;'>
-    Developed by F.Flow
+    Property of <a href="https://focusflow.co.za" target="_blank">Focusflow</a> &copy; 2021
 </div>
 """, unsafe_allow_html=True)            
