@@ -11,8 +11,8 @@ import pandas as pd
 from pandas.io.formats.style import Styler
 
 # File handling
-import openpyxl
-import requests
+#import openpyxl
+#import requests
 
 # Visualization
 import matplotlib.pyplot as plt
@@ -25,6 +25,9 @@ import dash_bootstrap_components as dbc
 from flask import Flask
 
 
+import streamlit as st
+from pymongo import MongoClient
+import pandas as pd
 
 # Set page config first
 st.set_page_config(
@@ -137,6 +140,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
+
+
+
 # Layout with tabs
 tab1, tab2 = st.tabs(["📤 Upload & Parameters", "📊 Results"])
 
@@ -145,12 +152,44 @@ with tab1:
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.markdown("### Upload Data")
-        uploaded_file = st.file_uploader(
-            "Upload Excel file",
-            type=["xlsx", "xls"],
-            help="Maximum file size: 200MB"
-        )
+        # MongoDB connection details
+        MONGO_URI = "mongodb+srv://focusflow:2DvpN3pasZQxbwAX@focusflowtestdata.em4gj.mongodb.net/?retryWrites=true&w=majority&appName=focusflowtestdata"
+        DATABASE_NAME = "focusflowtestdb"
+        COLLECTION_NAME = "toolkietest"
+
+        # Connect to MongoDB
+        client = MongoClient(MONGO_URI)
+        db = client[DATABASE_NAME]
+        collection = db[COLLECTION_NAME]
+
+        # Fetch data from MongoDB
+        @st.cache_data
+        def load_data():
+            data = list(collection.find())
+            # Convert MongoDB data to a pandas DataFrame
+            df = pd.DataFrame(data)
+            return df
+
+        # Streamlit application
+        st.write("MongoDB Data Viewer")
+
+        # Load data
+        uploaded_file = load_data()
+
+        # Display data
+        if not uploaded_file.empty:
+            st.write("Test data fetched succesfully:")
+            #st.write(uploaded_file)
+            print(uploaded_file.columns)
+        else:
+            st.write("No data found in the collection.")
+        
+        # st.markdown("### Upload Data")
+        # uploaded_file = st.file_uploader(
+        #     "Upload Excel file",
+        #     type=["xlsx", "xls"],
+        #     help="Maximum file size: 200MB"
+        #)
     
     with col2:
         st.markdown("### Forecast Parameters")
@@ -195,7 +234,7 @@ with tab1:
             )
 
 # Add the rest of your calculation logic here 
-#   
+
 # Forecast Button
 st.markdown('<div style="text-align: center; margin-top: 30px;">', unsafe_allow_html=True)
 if st.button("Generate Forecast 🚀"):
@@ -203,8 +242,9 @@ if st.button("Generate Forecast 🚀"):
         # Show a spinner while processing
         with st.spinner('Generating forecast... Please wait...'):
             # Read the uploaded Excel file into a DataFrame
-            sales_data_df = pd.read_excel(uploaded_file)
-            
+            sales_data_df = uploaded_file
+            print(sales_data_df.columns)
+
             # --- Original Code Logic Integration Starts Here ---
             
             sales_data_df['YearWeek'] = sales_data_df['Fin Year'] * 100 + sales_data_df['Week']

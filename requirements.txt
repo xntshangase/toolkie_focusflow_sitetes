@@ -12,3 +12,4 @@ dash-table==5.0.0
 flask==3.0.0
 plotly==5.18.0
 requests==2.31.0
+pymongo==4.10.1
