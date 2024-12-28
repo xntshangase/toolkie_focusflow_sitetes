@@ -13,3 +13,12 @@ flask==3.0.0
 plotly==5.18.0
 requests==2.31.0
 pymongo==4.10.1
+streamlit==1.29.0
+numpy==1.26.2
+pandas==2.1.4
+Pillow==10.1.0
+plotly==5.18.0
+pymongo==4.10.1
+python-dotenv==1.0.0
+watchdog==3.0.0
+bson==0.5.10
