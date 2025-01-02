@@ -29,6 +29,8 @@ import streamlit as st
 from pymongo import MongoClient
 import pandas as pd
 from bson import ObjectId
+import pymongo
+import certifi
 
 # Set page config first
 st.set_page_config(
@@ -165,7 +167,8 @@ with tab1:
             """
             try:
                 # Connect to MongoDB
-                client = MongoClient(MONGO_URI)
+                #client = MongoClient(MONGO_URI)
+                client = pymongo.MongoClient(MONGO_URI, tlsCAFile=certifi.where())
                 db = client[DATABASE_NAME]
                 collection = db[COLLECTION_NAME]
 
